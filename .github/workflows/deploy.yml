@@ -15,15 +15,12 @@ jobs:
       
       - name: Setup SSH
         run: |
-          # Install SSH and sshpass
           sudo apt-get update
           sudo apt-get install -y openssh-client sshpass
           
-          # Create SSH directory
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           
-          # Add VPS host key to known_hosts
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
       

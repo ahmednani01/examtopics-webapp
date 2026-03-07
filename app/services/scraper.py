@@ -124,7 +124,6 @@ class ExamScraper:
         """Return a list of common exam providers."""
         return [
             "microsoft",
-            "azure",
             "amazon",
             "google",
             "cncf",
