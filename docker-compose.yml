@@ -18,6 +18,7 @@ services:
     depends_on:
       - pinchtab
     restart: unless-stopped
+    container_name: examtopics-app
 
   pinchtab:
     image: pinchtab/pinchtab
@@ -28,6 +29,7 @@ services:
       - HEADLESS=true
     restart: unless-stopped
     shm_size: 2gb
+    container_name: examtopics-pinchtab
 
 networks:
   default:
