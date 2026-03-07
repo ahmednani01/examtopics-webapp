@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PINCHTAB_URL=http://pinchtab:9867
+      - DOWNLOAD_DIR=/app/downloads
+      - MAX_WORKERS=15
+      - REQUEST_TIMEOUT=30
+      - RETRY_ATTEMPTS=4
+      - CACHE_DB=/app/cache.db
+    volumes:
+      - ./downloads:/app/downloads
+      - ./cache.db:/app/cache.db
+    depends_on:
+      - pinchtab
+    restart: unless-stopped
+
+  pinchtab:
+    image: pinchtab/pinchtab
+    ports:
+      - "9867:9867"
+    environment:
+      - PORT=9867
+      - HEADLESS=true
+    restart: unless-stopped
+    shm_size: 2gb
+
+networks:
+  default:
+    name: examtopics-network
