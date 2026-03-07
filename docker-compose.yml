@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build: .
@@ -11,10 +9,10 @@ services:
       - MAX_WORKERS=15
       - REQUEST_TIMEOUT=30
       - RETRY_ATTEMPTS=4
-      - CACHE_DB=/app/cache.db
+      - CACHE_DB=/app/cache/cache.db
     volumes:
       - ./downloads:/app/downloads
-      - ./cache.db:/app/cache.db
+      - ./cache:/app/cache       # <-- map the folder, not the file
     depends_on:
       - pinchtab
     restart: unless-stopped
