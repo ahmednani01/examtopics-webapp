@@ -193,29 +193,48 @@ async function handleScrape() {
     if (!currentExam) return;
     
     const btn = document.getElementById('scrape-btn');
+    const progressFill = document.getElementById('scrape-progress-fill');
+    const progressText = document.getElementById('scrape-progress-text');
+    
     btn.disabled = true;
     btn.textContent = 'Scraping...';
+    progressFill.style.width = '0%';
+    progressText.textContent = '0%';
     
     try {
         const result = await startScraping(currentExam);
         console.log('Scraping started:', result);
         
-        const pollInterval = setInterval(async () => {
-            const status = await getJobStatus(result.job_id);
+        const eventSource = new EventSource(`/api/jobs/${result.job_id}/stream`);
+        
+        eventSource.onmessage = async (event) => {
+            const status = JSON.parse(event.data);
             console.log('Job status:', status);
             
+            const progress = Math.round((status.completed_pages / status.total_pages) * 100) || 0;
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = `${progress}% (${status.completed_questions}/${status.total_questions} questions)`;
+            
             if (status.status === 'completed') {
-                clearInterval(pollInterval);
+                eventSource.close();
                 btn.disabled = false;
                 btn.textContent = 'Scrape Exam';
+                progressFill.style.width = '100%';
+                progressText.textContent = '100%';
                 selectExam(currentExam);
             } else if (status.status === 'failed') {
-                clearInterval(pollInterval);
+                eventSource.close();
                 btn.disabled = false;
                 btn.textContent = 'Scrape Exam';
                 alert('Scraping failed: ' + status.error);
             }
-        }, 2000);
+        };
+        
+        eventSource.onerror = () => {
+            eventSource.close();
+            btn.disabled = false;
+            btn.textContent = 'Scrape Exam';
+        };
         
     } catch (error) {
         console.error('Failed to start scraping:', error);
