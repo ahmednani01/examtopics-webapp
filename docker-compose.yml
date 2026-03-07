@@ -4,7 +4,7 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - PINCHTAB_URL=http://pinchtab:9867
       - DOWNLOAD_DIR=/app/downloads
