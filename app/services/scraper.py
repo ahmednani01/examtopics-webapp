@@ -1,5 +1,4 @@
-import httpx
-from bs4 import BeautifulSoup
+import requests
 from time import sleep
 from typing import List, Dict, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -31,81 +30,70 @@ HEADERS = {
 
 class ExamScraper:
     def __init__(self):
-        self.client = httpx.Client(timeout=settings.request_timeout, headers=HEADERS)
+        self.session = requests.Session()
+        self.session.headers.update(HEADERS)
     
-    def close(self):
-        self.client.close()
-    
-    def fetch_number_pages_for_provider(self, provider: str) -> int:
-        """Fetch the number of pages for a provider's discussions."""
-        url = f"https://www.examtopics.com/discussions/{provider}/"
+    def fetch_number_pages(self, exam: str) -> int:
+        """Fetch the number of pages for an exam."""
+        base_url = f"https://www.examtopics.com/discussions/{exam}/"
         try:
-            response = self.client.get(url)
+            response = self.session.get(base_url, timeout=settings.request_timeout)
             if response.status_code == 404:
-                logger.error(f"Provider {provider} not found")
-                raise Exception(f"Provider '{provider}' not found")
+                logger.error(f"{exam} not found")
+                raise Exception(f"Exam '{exam}' not found")
             
+            from bs4 import BeautifulSoup
             soup = BeautifulSoup(response.text, 'html.parser')
             element = soup.select_one("div:nth-of-type(2) > div > div:nth-of-type(1) > div > span > span:nth-of-type(1) > strong:nth-of-type(2)")
             if element:
                 return int(element.text) + 1
             return 1
-        except httpx.HTTPError as e:
+        except requests.RequestException as e:
             logger.error(f"Failed to fetch page count: {e}")
             raise
     
-    def fetch_page(self, provider: str, page_number: int) -> List[Dict]:
-        """Fetch question links from a specific page of a provider's discussions."""
-        base_url = f"https://www.examtopics.com/discussions/{provider}/"
-        url = f"{base_url}{page_number}" if page_number > 1 else base_url
+    def fetch_page(self, exam: str, page_number: int) -> List[Dict]:
+        """Fetch question links from a specific page."""
+        base_url = f"https://www.examtopics.com/discussions/{exam}/"
+        url = f"{base_url}{page_number}"
         attempts = 0
         rows = []
         
         while attempts < settings.retry_attempts:
             try:
-                response = self.client.get(url)
+                response = self.session.get(url, timeout=settings.request_timeout)
                 if response.status_code == 200:
+                    from bs4 import BeautifulSoup
                     soup = BeautifulSoup(response.text, 'html.parser')
                     links = soup.select('div div div div div div div div h2 a')
                     
                     for link in links:
-                        href = link.get('href', '')
-                        title_match = link.text.strip()
-                        
-                        if 'exam-' not in href or 'topic' not in href or 'question' not in href:
-                            continue
-                        
-                        try:
-                            exam_part = href.split('exam-')[1].split('-topic')[0]
-                            topic = int(href.split('topic-')[1].split('-question')[0])
-                            question = int(href.split('question-')[1].split('-discussion')[0])
-                            
-                            rows.append({
-                                'title': exam_part,
-                                'topic': topic,
-                                'number': question,
-                                'link': f"https://www.examtopics.com{href}"
-                            })
-                        except (IndexError, ValueError):
-                            continue
-                    
-                    logger.info(f'Page {page_number} Done for {provider}')
+                        title = link.text.strip()[5:].split(' topic')[0]
+                        topic = int(link.text.strip().split('topic ')[1].split(' question')[0])
+                        question = int(link.text.strip().split('question ')[1].split(' discussion')[0])
+                        rows.append({
+                            'title': title,
+                            'topic': topic,
+                            'number': question,
+                            'link': f"https://www.examtopics.com{link.get('href')}"
+                        })
+                    logger.info(f'Page {page_number} Done for {exam.upper()}')
                     return rows
-            except httpx.HTTPError:
+            except requests.RequestException:
                 pass
             attempts += 1
             sleep(5)
         
-        logger.error(f"Failed to fetch page {page_number} for {provider} after {settings.retry_attempts} attempts.")
+        logger.error(f"Failed to fetch page {page_number} for {exam} after {settings.retry_attempts} attempts.")
         return rows
     
-    def fetch_all_questions(self, provider: str, exam_code: str, progress_callback: Optional[Callable] = None) -> List[Dict]:
+    def fetch_all_questions(self, exam: str, progress_callback: Optional[Callable] = None) -> List[Dict]:
         """Fetch all question links for an exam."""
-        logger.info(f"Starting to process {provider}/{exam_code}...")
+        logger.info(f"Starting to process {exam.upper()}...")
         
         try:
-            number_of_pages = self.fetch_number_pages_for_provider(provider)
-            logger.info(f"Found {number_of_pages - 1} pages for {provider}/{exam_code}...")
+            number_of_pages = self.fetch_number_pages(exam)
+            logger.info(f"Found {number_of_pages - 1} pages for {exam.upper()}...")
         except Exception as e:
             logger.error(f"Failed to fetch page count: {e}")
             return []
@@ -114,9 +102,9 @@ class ExamScraper:
         total_pages = number_of_pages - 1
         
         with ThreadPoolExecutor(max_workers=settings.max_workers) as executor:
-            futures = [executor.submit(self.fetch_page, provider, x) for x in range(1, number_of_pages)]
+            futures = [executor.submit(self.fetch_page, exam, x) for x in range(1, number_of_pages)]
             completed = 0
-            for future in tqdm(as_completed(futures), total=len(futures), desc=f"Scraping {provider}/{exam_code}"):
+            for future in tqdm(as_completed(futures), total=len(futures), desc=f"Scraping {exam.upper()}"):
                 rows = future.result()
                 if rows:
                     all_rows.extend(rows)
@@ -124,85 +112,22 @@ class ExamScraper:
                 if progress_callback:
                     progress_callback(completed, total_pages, len(all_rows))
         
-        filtered_rows = [row for row in all_rows if row['title'].lower() == exam_code.lower()]
-        
-        sorted_rows = sorted(filtered_rows, key=lambda x: (x['title'], int(x['number'])))
+        sorted_rows = sorted(all_rows, key=lambda x: (x['title'], int(x['number'])))
         
         for i, row in enumerate(sorted_rows, 1):
             row['id'] = i
         
-        logger.info(f"Found {len(sorted_rows)} questions for {provider}/{exam_code}")
+        logger.info(f"Found {len(sorted_rows)} questions for {exam.upper()}")
         return sorted_rows
     
-    def fetch_providers(self) -> List[Dict]:
-        """Fetch all certification providers from examtopics.com."""
-        url = "https://www.examtopics.com/exams/"
-        try:
-            response = self.client.get(url)
-            if response.status_code != 200:
-                logger.error(f"Failed to fetch providers: {response.status_code}")
-                return []
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            providers = []
-            links = soup.select('.provider-list-link a')
-            
-            for link in links:
-                href = link.get('href', '')
-                if '/exams/' in href and href.count('/') == 3:
-                    provider = href.strip('/').split('/')[-1]
-                    text = link.text.strip()
-                    exam_count = 0
-                    if '(' in text and ')' in text:
-                        try:
-                            exam_count = int(text.split('(')[1].split(' ')[0])
-                        except:
-                            pass
-                    providers.append({
-                        'name': provider,
-                        'display_name': text.split('(')[0].strip() if '(' in text else text,
-                        'exam_count': exam_count
-                    })
-            
-            logger.info(f"Found {len(providers)} providers")
-            return providers
-        except httpx.HTTPError as e:
-            logger.error(f"Failed to fetch providers: {e}")
-            return []
-
-    def fetch_exams_for_provider(self, provider: str) -> List[Dict]:
-        """Fetch all exams for a specific provider."""
-        url = f"https://www.examtopics.com/exams/{provider}/"
-        try:
-            response = self.client.get(url)
-            if response.status_code != 200:
-                logger.error(f"Failed to fetch exams for {provider}: {response.status_code}")
-                return []
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            exams = []
-            links = soup.select('a.popular-exam-link')
-            
-            for link in links:
-                href = link.get('href', '')
-                exam_code = href.strip('/').split('/')[-1]
-                
-                text = link.text.strip()
-                display_name = text.split(':')[0] if ':' in text else exam_code
-                description = text.split(':')[1].strip() if ':' in text else ''
-                
-                exams.append({
-                    'code': exam_code,
-                    'provider': provider,
-                    'exam_id': f"{provider}-{exam_code}",
-                    'display_name': display_name,
-                    'description': description
-                })
-            
-            logger.info(f"Found {len(exams)} exams for {provider}")
-            return exams
-        except httpx.HTTPError as e:
-            logger.error(f"Failed to fetch exams for {provider}: {e}")
-            return []
+    def get_exam_list(self) -> List[str]:
+        """Return a list of common exam providers."""
+        return [
+            "microsoft",
+            "amazon",
+            "google",
+            "cncf",
+            "hashicorp",
+            "cisco",
+            "compTIA",
+        ]

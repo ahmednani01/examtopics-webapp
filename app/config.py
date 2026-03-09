@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
-from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -9,7 +8,7 @@ class Settings(BaseSettings):
     max_workers: int = 15
     request_timeout: int = 30
     retry_attempts: int = 4
-    cache_db: str = str(Path(__file__).parent.parent / "cache.db")
+    cache_db: str = "cache.db"
     
     class Config:
         env_file = ".env"

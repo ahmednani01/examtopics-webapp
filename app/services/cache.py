@@ -19,8 +19,6 @@ class CacheManager:
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS questions (
                     id INTEGER PRIMARY KEY,
-                    provider TEXT NOT NULL,
-                    exam_code TEXT NOT NULL,
                     exam TEXT NOT NULL,
                     title TEXT,
                     topic INTEGER,
@@ -29,12 +27,6 @@ class CacheManager:
                     content TEXT,
                     scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """)
-            await db.execute("""
-                CREATE INDEX IF NOT EXISTS idx_questions_exam ON questions(exam)
-            """)
-            await db.execute("""
-                CREATE INDEX IF NOT EXISTS idx_questions_provider ON questions(provider)
             """)
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS jobs (
@@ -58,19 +50,10 @@ class CacheManager:
         """Save questions to cache."""
         async with aiosqlite.connect(self.db_path) as db:
             for q in questions:
-                exam = q.get('exam', '')
-                if '-' in exam:
-                    parts = exam.split('-', 1)
-                    provider = parts[0]
-                    exam_code = parts[1]
-                else:
-                    provider = exam
-                    exam_code = exam
-                
                 await db.execute("""
-                    INSERT OR REPLACE INTO questions (id, provider, exam_code, exam, title, topic, number, link, content)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (q.get('id'), provider, exam_code, exam, q.get('title'), q.get('topic'), 
+                    INSERT OR REPLACE INTO questions (id, exam, title, topic, number, link, content)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (q.get('id'), q.get('exam', ''), q.get('title'), q.get('topic'), 
                       q.get('number'), q.get('link'), json.dumps(q.get('content'))))
             await db.commit()
     
@@ -137,24 +120,3 @@ class CacheManager:
                 if row:
                     return dict(row)
         return None
-
-    async def get_all_exam_ids(self) -> List[str]:
-        """Get all unique exam IDs from the database."""
-        async with aiosqlite.connect(self.db_path) as db:
-            async with db.execute("SELECT DISTINCT exam FROM questions") as cursor:
-                rows = await cursor.fetchall()
-                return [row[0] for row in rows]
-
-    async def get_exams_by_provider(self, provider: str) -> List[Dict]:
-        """Get all exams for a provider from the database."""
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute("""
-                SELECT DISTINCT provider, exam_code, exam, COUNT(*) as question_count
-                FROM questions 
-                WHERE provider = ?
-                GROUP BY exam_code
-                ORDER BY exam_code
-            """, (provider,)) as cursor:
-                rows = await cursor.fetchall()
-                return [dict(row) for row in rows]
