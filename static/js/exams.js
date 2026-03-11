@@ -31,6 +31,13 @@ async function fetchExams() {
         const data = await response.json();
         
         document.getElementById('providerTitle').textContent = data.provider_display_name || currentProvider;
+        
+        if (data.scraping && data.job_id) {
+            showScrapeStatus();
+            pollJobStatus(data.job_id);
+            return;
+        }
+        
         document.getElementById('providerSubtitle').textContent = `${data.exams.length} exams`;
         allExams = data.exams || [];
         renderExams(allExams);
