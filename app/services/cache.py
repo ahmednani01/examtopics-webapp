@@ -18,7 +18,7 @@ class CacheManager:
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS questions (
-                    id INTEGER PRIMARY KEY,
+                    id TEXT PRIMARY KEY,
                     provider TEXT NOT NULL,
                     exam_code TEXT NOT NULL,
                     exam TEXT NOT NULL,
@@ -52,6 +52,14 @@ class CacheManager:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS providers (
+                    name TEXT PRIMARY KEY,
+                    display_name TEXT NOT NULL,
+                    exam_count INTEGER DEFAULT 0,
+                    scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
             await db.commit()
     
     async def save_questions(self, questions: List[Dict]):
@@ -70,7 +78,7 @@ class CacheManager:
                 await db.execute("""
                     INSERT OR REPLACE INTO questions (id, provider, exam_code, exam, title, topic, number, link, content)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (q.get('id'), provider, exam_code, exam, q.get('title'), q.get('topic'), 
+                """, (f"{exam}-{q.get('id')}", provider, exam_code, exam, q.get('title'), q.get('topic'), 
                       q.get('number'), q.get('link'), json.dumps(q.get('content'))))
             await db.commit()
     
@@ -79,6 +87,17 @@ class CacheManager:
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute("SELECT * FROM questions WHERE link = ?", (link,)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    return dict(row)
+        return None
+    
+    async def get_question_by_exam_and_id(self, exam: str, question_id: int) -> Optional[Dict]:
+        """Get a question by exam and numeric ID."""
+        composite_id = f"{exam}-{question_id}"
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM questions WHERE id = ?", (composite_id,)) as cursor:
                 row = await cursor.fetchone()
                 if row:
                     return dict(row)
@@ -158,3 +177,31 @@ class CacheManager:
             """, (provider,)) as cursor:
                 rows = await cursor.fetchall()
                 return [dict(row) for row in rows]
+    
+    async def save_providers(self, providers: List[Dict]):
+        """Save providers to database."""
+        async with aiosqlite.connect(self.db_path) as db:
+            for p in providers:
+                await db.execute("""
+                    INSERT OR REPLACE INTO providers (name, display_name, exam_count)
+                    VALUES (?, ?, ?)
+                """, (p.get('name'), p.get('display_name'), p.get('exam_count', 0)))
+            await db.commit()
+    
+    async def get_all_providers(self) -> List[Dict]:
+        """Get all providers from database."""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM providers ORDER BY display_name") as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+    
+    async def get_provider(self, name: str) -> Optional[Dict]:
+        """Get a single provider by name."""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM providers WHERE name = ?", (name,)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    return dict(row)
+        return None

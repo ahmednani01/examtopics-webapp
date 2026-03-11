@@ -78,6 +78,7 @@ class ProviderList(BaseModel):
 
 class ExamListResponse(BaseModel):
     provider: str
+    provider_display_name: Optional[str] = None
     exams: List[Exam]
 
 

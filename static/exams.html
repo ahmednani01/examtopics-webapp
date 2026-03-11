@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exams - ExamTopics</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="back-link">← Back to Providers</a>
+            <h1 id="providerTitle">Loading...</h1>
+            <p id="providerSubtitle">Loading exams...</p>
+        </header>
+
+        <div id="scrapeStatus" class="scrape-status hidden">
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <p id="scrapeMessage">Scraping exams...</p>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search exams..." class="search-input">
+        </div>
+
+        <div id="loading" class="loading">Loading exams...</div>
+        
+        <div id="error" class="error hidden"></div>
+
+        <div id="examsList" class="exams-grid"></div>
+    </div>
+
+    <script src="/static/js/exams.js"></script>
+</body>
+</html>

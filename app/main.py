@@ -47,6 +47,27 @@ async def root():
         return f.read()
 
 
+@app.get("/exams.html", response_class=HTMLResponse)
+async def exams_page():
+    exams_path = Path(__file__).parent.parent / "static" / "exams.html"
+    with open(exams_path, "r") as f:
+        return f.read()
+
+
+@app.get("/questions.html", response_class=HTMLResponse)
+async def questions_page():
+    questions_path = Path(__file__).parent.parent / "static" / "questions.html"
+    with open(questions_path, "r") as f:
+        return f.read()
+
+
+@app.get("/question.html", response_class=HTMLResponse)
+async def question_page():
+    question_path = Path(__file__).parent.parent / "static" / "question.html"
+    with open(question_path, "r") as f:
+        return f.read()
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)

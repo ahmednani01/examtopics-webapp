@@ -33,24 +33,72 @@ custom_exams = set()
 
 @router.get("/providers", response_model=ProviderList)
 async def list_providers():
-    """List all certification providers."""
-    providers = await asyncio.to_thread(scraper.fetch_providers)
-    return ProviderList(providers=[Provider(**p) for p in providers])
+    """List all certification providers from DB, or scrape if empty."""
+    db_providers = await cache.get_all_providers()
+    
+    if not db_providers:
+        providers = await asyncio.to_thread(scraper.fetch_providers)
+        if providers:
+            await cache.save_providers(providers)
+            db_providers = await cache.get_all_providers()
+    
+    return ProviderList(providers=[Provider(**p) for p in db_providers])
 
 
-@router.get("/providers/{provider}/exams", response_model=ExamListResponse)
-async def list_provider_exams(provider: str):
-    """List all exams for a specific provider."""
-    exams = await asyncio.to_thread(scraper.fetch_exams_for_provider, provider)
-    if not exams:
-        return ExamListResponse(provider=provider, exams=[])
-    return ExamListResponse(provider=provider, exams=[Exam(**e) for e in exams])
-
-
-@router.get("/providers/{provider}/exams/db", response_model=ExamListResponse)
+@router.get("/providers/{provider}/exams")
 async def list_provider_exams_from_db(provider: str):
-    """List exams for a provider from database."""
+    """List exams for a provider from database, auto-scrape if empty."""
     db_exams = await cache.get_exams_by_provider(provider)
+    
+    if not db_exams:
+        job_id = await cache.create_job(provider)
+        
+        async def run_scraper():
+            await cache.update_job(job_id, status='running')
+            
+            try:
+                all_questions = await asyncio.to_thread(
+                    scraper.fetch_all_questions_for_provider, provider
+                )
+                
+                from collections import defaultdict
+                questions_by_exam = defaultdict(list)
+                for q in all_questions:
+                    exam_code = q.get('title', '')
+                    exam_id = f"{provider}-{exam_code}"
+                    q['exam'] = exam_id
+                    questions_by_exam[exam_id].append(q)
+                
+                for exam_id, questions in questions_by_exam.items():
+                    for i, q in enumerate(questions, 1):
+                        q['id'] = i
+                
+                all_questions_flat = []
+                for questions in questions_by_exam.values():
+                    all_questions_flat.extend(questions)
+                
+                await cache.save_questions(all_questions_flat)
+                
+                await cache.update_job(
+                    job_id, 
+                    status='completed',
+                    progress=1.0,
+                    total_questions=len(all_questions_flat),
+                    completed_questions=len(all_questions_flat)
+                )
+            except Exception as e:
+                await cache.update_job(job_id, status='failed', error=str(e))
+        
+        asyncio.create_task(run_scraper())
+        
+        return {
+            "provider": provider,
+            "exams": [],
+            "scraping": True,
+            "job_id": job_id,
+            "message": "No exams found. Scraping started..."
+        }
+    
     exams = [
         Exam(
             code=e['exam_code'],
@@ -61,7 +109,11 @@ async def list_provider_exams_from_db(provider: str):
         )
         for e in db_exams
     ]
-    return ExamListResponse(provider=provider, exams=exams)
+    
+    db_provider = await cache.get_provider(provider)
+    provider_display_name = db_provider['display_name'] if db_provider else provider
+    
+    return ExamListResponse(provider=provider, provider_display_name=provider_display_name, exams=exams)
 
 
 @router.get("/exams/search")
@@ -104,7 +156,7 @@ async def get_exam_questions(
     
     questions = [
         QuestionLink(
-            id=q['id'],
+            id=int(q['id'].split('-')[-1]),
             title=q['title'],
             topic=q['topic'],
             number=q['number'],
@@ -123,27 +175,23 @@ async def get_exam_questions(
 
 
 @router.get("/questions/{question_id}")
-async def get_question_detail(question_id: int):
+async def get_question_detail(
+    question_id: int,
+    provider: str = Query(..., description="Provider name"),
+    exam: str = Query(..., description="Exam code")
+):
     """Get detailed question content using Pinchtab."""
-    all_exam_ids = await cache.get_all_exam_ids()
-    all_exams = [e for e in all_exam_ids] + list(custom_exams)
+    exam_id = f"{provider}-{exam}"
     
-    link = None
-    for exam in all_exams:
-        questions = await cache.get_questions_by_exam(exam)
-        for q in questions:
-            if q['id'] == question_id:
-                link = q['link']
-                break
-        if link:
-            break
+    question = await cache.get_question_by_exam_and_id(exam_id, question_id)
     
-    if not link:
+    if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     
-    cached = await cache.get_question_by_link(link)
-    if cached and cached.get('content'):
-        content_data = json.loads(cached['content'])
+    link = question['link']
+    
+    if question.get('content'):
+        content_data = json.loads(question['content'])
         if content_data:
             return QuestionDetail(
                 id=question_id,
@@ -181,11 +229,10 @@ async def get_question_detail(question_id: int):
         await pinchtab.close()
 
 
-@router.post("/exams/{provider}/{exam_code}/scrape")
-async def scrape_exam(provider: str, exam_code: str, background_tasks: BackgroundTasks):
-    """Start scraping an exam in the background."""
-    exam_id = f"{provider}-{exam_code}"
-    job_id = await cache.create_job(exam_id)
+@router.post("/exams/{provider}/scrape")
+async def scrape_provider(provider: str, background_tasks: BackgroundTasks):
+    """Start scraping all exams for a provider in the background."""
+    job_id = await cache.create_job(provider)
     
     async def run_scraper():
         await cache.update_job(job_id, status='running', total_pages=1, completed_pages=0)
@@ -210,31 +257,50 @@ async def scrape_exam(provider: str, exam_code: str, background_tasks: Backgroun
                 logger.error(f"Failed to update progress: {e}")
         
         try:
-            total_pages = scraper.fetch_number_pages_for_provider(provider)
-            await cache.update_job(job_id, total_pages=total_pages - 1)
+            all_questions = []
+            exams = await asyncio.to_thread(scraper.fetch_exams_for_provider, provider)
             
-            questions = await asyncio.to_thread(
-                scraper.fetch_all_questions, provider, exam_code, progress_callback
-            )
+            total_exams = len(exams)
+            await cache.update_job(job_id, total_pages=total_exams)
             
-            for q in questions:
-                q['exam'] = exam_id
+            for idx, exam in enumerate(exams):
+                exam_code = exam['code']
+                exam_id = f"{provider}-{exam_code}"
+                
+                try:
+                    questions = await asyncio.to_thread(
+                        scraper.fetch_all_questions, provider, exam_code, progress_callback
+                    )
+                    
+                    for q in questions:
+                        q['exam'] = exam_id
+                    
+                    all_questions.extend(questions)
+                except Exception as e:
+                    logger.error(f"Failed to scrape {exam_code}: {e}")
+                
+                await cache.update_job(
+                    job_id,
+                    completed_pages=idx + 1,
+                    progress=(idx + 1) / total_exams,
+                    total_questions=len(all_questions)
+                )
             
-            await cache.save_questions(questions)
+            await cache.save_questions(all_questions)
             
             await cache.update_job(
                 job_id, 
                 status='completed',
                 progress=1.0,
-                total_questions=len(questions),
-                completed_questions=len(questions)
+                total_questions=len(all_questions),
+                completed_questions=len(all_questions)
             )
         except Exception as e:
             await cache.update_job(job_id, status='failed', error=str(e))
     
     background_tasks.add_task(run_scraper)
     
-    return {"job_id": job_id, "message": "Scraping started", "provider": provider, "exam_code": exam_code}
+    return {"job_id": job_id, "message": "Scraping started", "provider": provider}
 
 
 @router.get("/jobs/{job_id}", response_model=JobStatus)

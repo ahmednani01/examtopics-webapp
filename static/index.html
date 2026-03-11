@@ -3,127 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExamTopics Viewer</title>
+    <title>ExamTopics - Certification Exam Questions</title>
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-    <div class="app-container">
-        <aside class="sidebar">
-            <div class="logo">
-                <h1><img src="https://www.examtopics.com/assets/images/et/ExamTopics-Logo-Smaller.png" alt="ExamTopics" height="40"></h1>
-            </div>
-            
-            <div class="sidebar-section">
-                <div class="section-header">
-                    <h2>Providers</h2>
-                    <button id="back-to-providers" class="back-arrow hidden">←</button>
-                </div>
-                <input type="text" id="provider-search" class="search-input" placeholder="Search providers...">
-                <div id="providers-container" class="item-container">
-                    <p class="loading">Loading providers...</p>
-                </div>
-            </div>
-            
-            <div class="sidebar-section hidden" id="exams-section">
-                <div class="section-header">
-                    <h2 id="exams-header">Exams</h2>
-                    <button id="back-to-exams" class="back-arrow hidden">←</button>
-                </div>
-                <input type="text" id="exam-search" class="search-input" placeholder="Search exams...">
-                <select id="exam-dropdown" class="dropdown-select">
-                    <option value="">Jump to exam...</option>
-                </select>
-                <div id="exams-container" class="item-container">
-                    <p class="loading">Loading exams...</p>
-                </div>
-            </div>
-            
-            <div class="progress-section">
-                <h2>Progress</h2>
-                <div class="progress-bar">
-                    <div id="progress-fill" class="progress-fill"></div>
-                </div>
-                <p id="progress-text">0 / 0 questions</p>
-            </div>
-            
-            <div id="scrape-progress" class="scrape-progress hidden">
-                <h2>Scraping</h2>
-                <div class="progress-bar">
-                    <div id="scrape-progress-fill" class="progress-fill"></div>
-                </div>
-                <p id="scrape-progress-text">0%</p>
-            </div>
-            
-            <button id="scrape-btn" class="scrape-btn" disabled>Scrape Exam</button>
-        </aside>
+    <div class="container">
+        <header>
+            <h1>ExamTopics</h1>
+            <p>Browse certification exam questions</p>
+        </header>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search providers..." class="search-input">
+        </div>
+
+        <div id="loading" class="loading">Loading providers...</div>
         
-        <main class="main-content">
-            <header class="header">
-                <div class="header-left">
-                    <nav class="breadcrumb" id="breadcrumb">
-                        <span id="current-provider">Select a provider</span>
-                        <span id="separator-1" class="hidden"> → </span>
-                        <span id="current-exam" class="hidden"></span>
-                    </nav>
-                </div>
-                <div class="header-right">
-                    <select id="question-jump-dropdown" class="question-dropdown hidden">
-                        <option value="">Jump to question...</option>
-                    </select>
-                    <button id="theme-toggle" class="theme-btn">🌙</button>
-                </div>
-            </header>
-            
-            <div class="content-area">
-                <div class="pagination-controls" id="pagination-controls">
-                    <button id="prev-page-btn" class="page-btn">← Previous</button>
-                    <span id="page-counter">Page 1 of 1</span>
-                    <button id="next-page-btn" class="page-btn">Next →</button>
-                </div>
-                
-                <div id="questions-list" class="questions-list">
-                    <div class="empty-state">
-                        <p>Select a provider to get started</p>
-                    </div>
-                </div>
-                
-                <div id="question-detail" class="question-detail hidden">
-                    <div class="question-header">
-                        <h3 id="question-title">Question Title</h3>
-                        <button id="back-btn" class="back-btn">← Back</button>
-                    </div>
-                    
-                    <div class="question-nav">
-                        <button id="prev-btn" class="nav-btn">← Previous</button>
-                        <span id="question-counter">1 / 10</span>
-                        <button id="next-btn" class="nav-btn">Next →</button>
-                    </div>
-                    
-                    <div class="mcq-container">
-                        <p id="question-text" class="question-text"></p>
-                        
-                        <div id="options-container" class="options-container">
-                        </div>
-                        
-                        <div id="answer-reveal" class="answer-reveal hidden">
-                            <p>Correct Answer: <strong id="correct-answer"></strong></p>
-                        </div>
-                    </div>
-                    
-                    <div id="explanation" class="explanation hidden">
-                        <h4>Explanation</h4>
-                        <p id="explanation-text"></p>
-                    </div>
-                    
-                    <div id="discussions" class="discussions hidden">
-                        <h4>Discussions</h4>
-                        <div id="discussions-list"></div>
-                    </div>
-                </div>
-            </div>
-        </main>
+        <div id="error" class="error hidden"></div>
+
+        <div id="providersList" class="providers-grid"></div>
     </div>
-    
+
     <script src="/static/js/app.js"></script>
 </body>
 </html>

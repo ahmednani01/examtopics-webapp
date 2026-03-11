@@ -99,13 +99,13 @@ class ExamScraper:
         logger.error(f"Failed to fetch page {page_number} for {provider} after {settings.retry_attempts} attempts.")
         return rows
     
-    def fetch_all_questions(self, provider: str, exam_code: str, progress_callback: Optional[Callable] = None) -> List[Dict]:
-        """Fetch all question links for an exam."""
-        logger.info(f"Starting to process {provider}/{exam_code}...")
+    def fetch_all_questions_for_provider(self, provider: str, progress_callback: Optional[Callable] = None) -> List[Dict]:
+        """Fetch all question links for a provider (all exams)."""
+        logger.info(f"Starting to process {provider}...")
         
         try:
             number_of_pages = self.fetch_number_pages_for_provider(provider)
-            logger.info(f"Found {number_of_pages - 1} pages for {provider}/{exam_code}...")
+            logger.info(f"Found {number_of_pages - 1} pages for {provider}...")
         except Exception as e:
             logger.error(f"Failed to fetch page count: {e}")
             return []
@@ -116,13 +116,20 @@ class ExamScraper:
         with ThreadPoolExecutor(max_workers=settings.max_workers) as executor:
             futures = [executor.submit(self.fetch_page, provider, x) for x in range(1, number_of_pages)]
             completed = 0
-            for future in tqdm(as_completed(futures), total=len(futures), desc=f"Scraping {provider}/{exam_code}"):
+            for future in tqdm(as_completed(futures), total=len(futures), desc=f"Scraping {provider}"):
                 rows = future.result()
                 if rows:
                     all_rows.extend(rows)
                 completed += 1
                 if progress_callback:
                     progress_callback(completed, total_pages, len(all_rows))
+        
+        logger.info(f"Found {len(all_rows)} total questions for {provider}")
+        return all_rows
+    
+    def fetch_all_questions(self, provider: str, exam_code: str, progress_callback: Optional[Callable] = None) -> List[Dict]:
+        """Fetch all question links for an exam."""
+        all_rows = self.fetch_all_questions_for_provider(provider, progress_callback)
         
         filtered_rows = [row for row in all_rows if row['title'].lower() == exam_code.lower()]
         
