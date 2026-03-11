@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import aiosqlite
+import sqlite3
 from contextlib import asynccontextmanager
 
 from app.models import (
@@ -56,9 +57,18 @@ async def list_provider_exams_from_db(provider: str):
         async def run_scraper():
             await cache.update_job(job_id, status='running')
             
+            def update_progress_sync(completed: int, total: int, question_count: int):
+                progress = completed / total if total > 0 else 0
+                conn = sqlite3.connect(settings.cache_db)
+                conn.execute("""
+                    UPDATE jobs SET status = ?, progress = ?, completed_pages = ?, total_pages = ?, total_questions = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                """, ('running', progress, completed, total, question_count, job_id))
+                conn.commit()
+                conn.close()
+            
             try:
                 all_questions = await asyncio.to_thread(
-                    scraper.fetch_all_questions_for_provider, provider
+                    scraper.fetch_all_questions_for_provider, provider, update_progress_sync
                 )
                 
                 from collections import defaultdict
