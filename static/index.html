@@ -13,14 +13,28 @@
                 <h1><img src="https://www.examtopics.com/assets/images/et/ExamTopics-Logo-Smaller.png" alt="ExamTopics" height="40"></h1>
             </div>
             
-            <div class="exam-list">
-                <h2>Exams</h2>
-                <div id="exams-container">
-                    <p class="loading">Loading exams...</p>
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <h2>Providers</h2>
+                    <button id="back-to-providers" class="back-arrow hidden">←</button>
                 </div>
-                <div class="add-exam">
-                    <input type="text" id="new-exam-input" placeholder="Add custom exam...">
-                    <button id="add-exam-btn">+</button>
+                <input type="text" id="provider-search" class="search-input" placeholder="Search providers...">
+                <div id="providers-container" class="item-container">
+                    <p class="loading">Loading providers...</p>
+                </div>
+            </div>
+            
+            <div class="sidebar-section hidden" id="exams-section">
+                <div class="section-header">
+                    <h2 id="exams-header">Exams</h2>
+                    <button id="back-to-exams" class="back-arrow hidden">←</button>
+                </div>
+                <input type="text" id="exam-search" class="search-input" placeholder="Search exams...">
+                <select id="exam-dropdown" class="dropdown-select">
+                    <option value="">Jump to exam...</option>
+                </select>
+                <div id="exams-container" class="item-container">
+                    <p class="loading">Loading exams...</p>
                 </div>
             </div>
             
@@ -46,17 +60,30 @@
         <main class="main-content">
             <header class="header">
                 <div class="header-left">
-                    <h2 id="current-exam">Select an exam</h2>
+                    <nav class="breadcrumb" id="breadcrumb">
+                        <span id="current-provider">Select a provider</span>
+                        <span id="separator-1" class="hidden"> → </span>
+                        <span id="current-exam" class="hidden"></span>
+                    </nav>
                 </div>
                 <div class="header-right">
+                    <select id="question-jump-dropdown" class="question-dropdown hidden">
+                        <option value="">Jump to question...</option>
+                    </select>
                     <button id="theme-toggle" class="theme-btn">🌙</button>
                 </div>
             </header>
             
             <div class="content-area">
+                <div class="pagination-controls" id="pagination-controls">
+                    <button id="prev-page-btn" class="page-btn">← Previous</button>
+                    <span id="page-counter">Page 1 of 1</span>
+                    <button id="next-page-btn" class="page-btn">Next →</button>
+                </div>
+                
                 <div id="questions-list" class="questions-list">
                     <div class="empty-state">
-                        <p>Select an exam to view questions</p>
+                        <p>Select a provider to get started</p>
                     </div>
                 </div>
                 
@@ -97,344 +124,6 @@
         </main>
     </div>
     
-    <script>
-const API_BASE = '/api';
-
-async function getExams() {
-    const response = await fetch(API_BASE + '/exams');
-    if (!response.ok) throw new Error('Failed to fetch exams');
-    return response.json();
-}
-
-async function getExamQuestions(exam) {
-    const response = await fetch(API_BASE + '/exams/' + exam + '/questions');
-    if (!response.ok) throw new Error('Failed to fetch questions');
-    return response.json();
-}
-
-async function getQuestionDetail(questionId) {
-    const response = await fetch(API_BASE + '/questions/' + questionId);
-    if (!response.ok) throw new Error('Failed to fetch question detail');
-    return response.json();
-}
-
-async function startScraping(exam) {
-    const response = await fetch(API_BASE + '/exams/' + exam + '/scrape', {
-        method: 'POST'
-    });
-    if (!response.ok) throw new Error('Failed to start scraping');
-    return response.json();
-}
-
-async function getJobStatus(jobId) {
-    const response = await fetch(API_BASE + '/jobs/' + jobId);
-    if (!response.ok) throw new Error('Failed to get job status');
-    return response.json();
-}
-
-let currentExam = null;
-let currentQuestions = [];
-let currentQuestionIndex = 0;
-
-document.addEventListener('DOMContentLoaded', function() {
-    initTheme();
-    loadExams();
-    setupEventListeners();
-});
-
-function initTheme() {
-    const theme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', theme);
-    updateThemeButton(theme);
-}
-
-function setupEventListeners() {
-    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-    document.getElementById('scrape-btn').addEventListener('click', handleScrape);
-    document.getElementById('back-btn').addEventListener('click', showQuestionsList);
-    document.getElementById('prev-btn').addEventListener('click', prevQuestion);
-    document.getElementById('next-btn').addEventListener('click', nextQuestion);
-    document.getElementById('add-exam-btn').addEventListener('click', addCustomExam);
-    document.getElementById('new-exam-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addCustomExam();
-    });
-}
-
-function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme');
-    const newTheme = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    updateThemeButton(newTheme);
-}
-
-function updateThemeButton(theme) {
-    document.getElementById('theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
-}
-
-async function loadExams() {
-    try {
-        const data = await getExams();
-        renderExams(data.exams);
-    } catch (error) {
-        console.error('Failed to load exams:', error);
-        document.getElementById('exams-container').innerHTML = 
-            '<p class="error">Failed to load exams</p>';
-    }
-}
-
-function renderExams(exams) {
-    const container = document.getElementById('exams-container');
-    container.innerHTML = exams.map(function(exam) {
-        return '<div class="exam-item" data-exam="' + exam + '"><span>' + exam + '</span></div>';
-    }).join('');
-    
-    container.querySelectorAll('.exam-item').forEach(function(item) {
-        item.addEventListener('click', function() {
-            selectExam(item.dataset.exam);
-        });
-    });
-}
-
-async function addCustomExam() {
-    const input = document.getElementById('new-exam-input');
-    const examName = input.value.trim().toLowerCase();
-    
-    if (!examName) return;
-    
-    try {
-        const response = await fetch(API_BASE + '/exams/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(examName)
-        });
-        
-        if (response.ok) {
-            input.value = '';
-            await loadExams();
-            selectExam(examName);
-        } else {
-            alert('Failed to add exam');
-        }
-    } catch (error) {
-        console.error('Failed to add exam:', error);
-        alert('Failed to add exam');
-    }
-}
-
-async function selectExam(exam) {
-    currentExam = exam;
-    
-    document.querySelectorAll('.exam-item').forEach(function(item) {
-        item.classList.toggle('active', item.dataset.exam === exam);
-    });
-    
-    document.getElementById('current-exam').textContent = exam.toUpperCase();
-    document.getElementById('scrape-btn').disabled = false;
-    
-    try {
-        const data = await getExamQuestions(exam);
-        currentQuestions = data.questions;
-        renderQuestions(data.questions, data.total_questions);
-    } catch (error) {
-        console.error('Failed to load questions:', error);
-    }
-}
-
-function renderQuestions(questions, total) {
-    const progressFill = document.getElementById('progress-fill');
-    const progressText = document.getElementById('progress-text');
-    
-    progressFill.style.width = '100%';
-    progressText.textContent = questions.length + ' / ' + total + ' questions';
-    
-    const listContainer = document.getElementById('questions-list');
-    
-    if (questions.length === 0) {
-        listContainer.innerHTML = '<div class="empty-state"><p>No questions found. Try scraping the exam.</p></div>';
-        return;
-    }
-    
-    listContainer.innerHTML = questions.map(function(q) {
-        return '<div class="question-card" data-id="' + q.id + '"><h3>' + q.title + '</h3><p class="meta">Topic ' + q.topic + ' - Question ' + q.number + '</p></div>';
-    }).join('');
-    
-    listContainer.querySelectorAll('.question-card').forEach(function(card) {
-        card.addEventListener('click', function() {
-            loadQuestionDetail(parseInt(card.dataset.id));
-        });
-    });
-    
-    showQuestionsList();
-}
-
-async function loadQuestionDetail(questionId) {
-    const detailView = document.getElementById('question-detail');
-    const listView = document.getElementById('questions-list');
-    
-    currentQuestionIndex = currentQuestions.findIndex(function(q) { return q.id === questionId; });
-    
-    listView.classList.add('hidden');
-    detailView.classList.remove('hidden');
-    
-    document.getElementById('question-title').textContent = 'Question #' + questionId;
-    updateNavButtons();
-    
-    try {
-        const data = await getQuestionDetail(questionId);
-        renderQuestionContent(data);
-    } catch (error) {
-        console.error('Failed to load question:', error);
-        document.getElementById('question-text').textContent = 'Failed to load question content';
-    }
-}
-
-function renderQuestionContent(data) {
-    document.getElementById('question-title').textContent = data.content.question.substring(0, 100) + '...';
-    document.getElementById('question-text').textContent = data.content.question;
-    
-    const optionsContainer = document.getElementById('options-container');
-    optionsContainer.innerHTML = data.content.options.map(function(opt) {
-        return '<div class="option" data-letter="' + opt.letter + '"><span class="letter">' + opt.letter + '</span><span class="text">' + opt.text + '</span></div>';
-    }).join('');
-    
-    optionsContainer.querySelectorAll('.option').forEach(function(opt) {
-        opt.addEventListener('click', function() {
-            selectOption(opt, data.content.correct_answer);
-        });
-    });
-    
-    if (data.content.correct_answer) {
-        document.getElementById('answer-reveal').classList.remove('hidden');
-        document.getElementById('correct-answer').textContent = data.content.correct_answer;
-    }
-    
-    if (data.content.explanation) {
-        document.getElementById('explanation').classList.remove('hidden');
-        document.getElementById('explanation-text').textContent = data.content.explanation;
-    }
-    
-    if (data.content.discussions && data.content.discussions.length > 0) {
-        document.getElementById('discussions').classList.remove('hidden');
-        const discussionsList = document.getElementById('discussions-list');
-        discussionsList.innerHTML = data.content.discussions.map(function(d) {
-            return '<div class="discussion-item"><p class="user">' + d.user + '</p><p class="comment">' + d.comment + '</p><p class="votes">+' + d.votes + '</p></div>';
-        }).join('');
-    }
-}
-
-function selectOption(optionEl, correctAnswer) {
-    document.querySelectorAll('.option').forEach(function(opt) {
-        opt.classList.remove('selected');
-    });
-    
-    optionEl.classList.add('selected');
-    
-    const selectedLetter = optionEl.dataset.letter;
-    
-    if (correctAnswer) {
-        document.querySelectorAll('.option').forEach(function(opt) {
-            if (opt.dataset.letter === correctAnswer) {
-                opt.classList.add('correct');
-            } else if (opt === optionEl && opt.dataset.letter !== correctAnswer) {
-                opt.classList.add('incorrect');
-            }
-        });
-        
-        document.getElementById('answer-reveal').classList.remove('hidden');
-        document.getElementById('correct-answer').textContent = correctAnswer;
-    }
-}
-
-function showQuestionsList() {
-    document.getElementById('question-detail').classList.add('hidden');
-    document.getElementById('questions-list').classList.remove('hidden');
-}
-
-async function handleScrape() {
-    if (!currentExam) return;
-    
-    const btn = document.getElementById('scrape-btn');
-    const scrapeProgress = document.getElementById('scrape-progress');
-    const scrapeProgressFill = document.getElementById('scrape-progress-fill');
-    const scrapeProgressText = document.getElementById('scrape-progress-text');
-    
-    btn.disabled = true;
-    btn.textContent = 'Scraping...';
-    scrapeProgress.classList.remove('hidden');
-    scrapeProgressFill.style.width = '10%';
-    scrapeProgressText.textContent = 'Fetching questions...';
-    
-    try {
-        const result = await startScraping(currentExam);
-        console.log('Scraping started:', result);
-        
-        const pollInterval = setInterval(async function() {
-            try {
-                const status = await getJobStatus(result.job_id);
-                console.log('Job status:', status);
-                
-                if (status.status === 'running') {
-                    scrapeProgressFill.style.width = '50%';
-                    scrapeProgressText.textContent = 'Scraping in progress...';
-                } else if (status.status === 'completed') {
-                    clearInterval(pollInterval);
-                    scrapeProgressFill.style.width = '100%';
-                    scrapeProgressText.textContent = 'Completed!';
-                    setTimeout(function() {
-                        btn.disabled = false;
-                        btn.textContent = 'Scrape Exam';
-                        scrapeProgress.classList.add('hidden');
-                        scrapeProgressFill.style.width = '0%';
-                    }, 1500);
-                    selectExam(currentExam);
-                } else if (status.status === 'failed') {
-                    clearInterval(pollInterval);
-                    btn.disabled = false;
-                    btn.textContent = 'Scrape Exam';
-                    scrapeProgress.classList.add('hidden');
-                    alert('Scraping failed: ' + status.error);
-                }
-            } catch(e) {
-                console.error(e);
-            }
-        }, 2000);
-        
-    } catch (error) {
-        console.error('Failed to start scraping:', error);
-        btn.disabled = false;
-        btn.textContent = 'Scrape Exam';
-        scrapeProgress.classList.add('hidden');
-    }
-}
-
-function updateNavButtons() {
-    var prevBtn = document.getElementById('prev-btn');
-    var nextBtn = document.getElementById('next-btn');
-    var counter = document.getElementById('question-counter');
-    var total = currentQuestions.length;
-    var current = currentQuestionIndex + 1;
-    
-    counter.textContent = current + ' / ' + total;
-    prevBtn.disabled = currentQuestionIndex <= 0;
-    nextBtn.disabled = currentQuestionIndex >= total - 1;
-}
-
-function prevQuestion() {
-    if (currentQuestionIndex > 0) {
-        currentQuestionIndex--;
-        var question = currentQuestions[currentQuestionIndex];
-        loadQuestionDetail(question.id);
-    }
-}
-
-function nextQuestion() {
-    if (currentQuestionIndex < currentQuestions.length - 1) {
-        currentQuestionIndex++;
-        var question = currentQuestions[currentQuestionIndex];
-        loadQuestionDetail(question.id);
-    }
-}
-    </script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>

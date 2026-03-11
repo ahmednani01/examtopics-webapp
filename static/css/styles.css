@@ -57,6 +57,110 @@ body {
     font-weight: 700;
 }
 
+.sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-header h2 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
+.back-arrow {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.back-arrow:hover {
+    opacity: 1;
+}
+
+.search-input {
+    padding: 10px 14px;
+    border: none;
+    border-radius: var(--radius);
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 0.9rem;
+    width: 100%;
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.dropdown-select {
+    padding: 10px 14px;
+    border: none;
+    border-radius: var(--radius);
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 0.9rem;
+    width: 100%;
+    cursor: pointer;
+}
+
+.dropdown-select option {
+    background-color: var(--sidebar-bg);
+    color: white;
+}
+
+.item-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.provider-item, .exam-item {
+    padding: 10px 14px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.provider-item:hover, .exam-item:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.provider-item.active, .exam-item.active {
+    background-color: var(--text-light);
+    color: var(--sidebar-bg);
+}
+
+.provider-item .count, .exam-item .count {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.exam-item .desc {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    display: block;
+    margin-top: 2px;
+}
+
 .exam-list h2,
 .progress-section h2 {
     font-size: 0.9rem;
@@ -262,6 +366,77 @@ body {
 .question-card .meta {
     font-size: 0.85rem;
     color: var(--text-secondary);
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.page-btn {
+    padding: 8px 16px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+}
+
+.page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+#page-counter {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.question-dropdown {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    max-width: 200px;
+}
+
+.question-dropdown option {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+}
+
+#current-exam {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .empty-state {
