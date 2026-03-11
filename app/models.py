@@ -56,3 +56,35 @@ class JobStatus(BaseModel):
 
 class ExamList(BaseModel):
     exams: List[str]
+
+
+class Provider(BaseModel):
+    name: str
+    display_name: str
+    exam_count: int = 0
+
+
+class Exam(BaseModel):
+    code: str
+    provider: str
+    exam_id: str
+    display_name: str
+    description: str = ""
+
+
+class ProviderList(BaseModel):
+    providers: List[Provider]
+
+
+class ExamListResponse(BaseModel):
+    provider: str
+    provider_display_name: Optional[str] = None
+    exams: List[Exam]
+
+
+class PaginatedQuestions(BaseModel):
+    exam: str
+    total_questions: int
+    current_page: int
+    total_pages: int
+    questions: List[QuestionLink]

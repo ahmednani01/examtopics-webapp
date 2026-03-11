@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questions - ExamTopics</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/exams.html" class="back-link">← Back to Exams</a>
+            <h1 id="examTitle">Loading...</h1>
+            <p id="examSubtitle">Loading questions...</p>
+        </header>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search questions..." class="search-input">
+        </div>
+
+        <div id="loading" class="loading">Loading questions...</div>
+        
+        <div id="error" class="error hidden"></div>
+
+        <div id="questionsList" class="questions-list"></div>
+
+        <div id="questionDetail" class="question-detail hidden">
+            <div class="detail-header">
+                <button id="backToList" class="btn">← Back to List</button>
+            </div>
+            <h2 id="qNumber"></h2>
+            <p id="qText" class="question-text"></p>
+            <div id="qOptions" class="options-list"></div>
+            <div id="qAnswer" class="answer-section hidden">
+                <h3>Correct Answer: <span id="correctAnswer"></span></h3>
+            </div>
+            <div id="qExplanation" class="explanation hidden">
+                <h3>Explanation</h3>
+                <p></p>
+            </div>
+        </div>
+
+        <div id="pagination" class="pagination hidden">
+            <button id="prevBtn" class="btn">Previous</button>
+            <span id="pageInfo"></span>
+            <button id="nextBtn" class="btn">Next</button>
+        </div>
+    </div>
+
+    <script src="/static/js/questions.js"></script>
+</body>
+</html>
