@@ -30,7 +30,8 @@ async function fetchQuestions() {
     currentProvider = provider;
     currentExam = exam;
 
-    document.getElementById('examTitle').textContent = exam;
+    document.querySelector('.back-link').href = `/exams.html?provider=${provider}`;
+    document.getElementById('examTitle').textContent = exam.toUpperCase();
     document.getElementById('examSubtitle').textContent = 'Loading questions...';
 
     try {
@@ -69,8 +70,8 @@ function renderQuestions(questions) {
         card.innerHTML = `
             <div class="question-number">Q${q.number}</div>
             <div class="question-info">
-                <h3>${q.title}</h3>
-                <span class="topic">Topic ${q.topic}</span>
+                <h3>${q.title?.toUpperCase()}</h3>
+                <span class="topic">Topic ${q.topic} - Question ${q.number}</span>
             </div>
         `;
         card.addEventListener('click', () => {

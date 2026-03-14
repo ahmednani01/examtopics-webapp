@@ -96,7 +96,7 @@ function renderExams(exams) {
         const card = document.createElement('div');
         card.className = 'exam-card';
         card.innerHTML = `
-            <h3>${exam.display_name}</h3>
+            <h3>${exam.display_name?.toUpperCase()}</h3>
             <span class="exam-count">${exam.description}</span>
         `;
         card.addEventListener('click', () => {

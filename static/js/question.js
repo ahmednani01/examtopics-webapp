@@ -29,9 +29,9 @@ async function init() {
     currentExam = exam;
     currentQuestionId = id;
 
-    document.getElementById('examTitle').textContent = exam;
+    document.getElementById('examTitle').textContent = exam.toUpperCase();
     
-    document.getElementById('backToExams').href = `/question.html?provider=${provider}&exam=${exam}`;
+    document.getElementById('backToExams').href = `/exams.html?provider=${provider}`;
     document.getElementById('backToList').href = `/questions.html?provider=${provider}&exam=${exam}`;
 
     try {
