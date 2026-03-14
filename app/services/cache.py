@@ -107,7 +107,7 @@ class CacheManager:
         """Get all questions for an exam."""
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM questions WHERE exam = ? ORDER BY id", (exam,)) as cursor:
+            async with db.execute("SELECT * FROM questions WHERE exam = ? ORDER BY title, number", (exam,)) as cursor:
                 rows = await cursor.fetchall()
                 return [dict(row) for row in rows]
         return []

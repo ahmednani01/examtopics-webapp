@@ -1,4 +1,4 @@
-import httpx
+import requests
 from bs4 import BeautifulSoup
 from time import sleep
 from typing import List, Dict, Optional, Callable
@@ -31,16 +31,13 @@ HEADERS = {
 
 class ExamScraper:
     def __init__(self):
-        self.client = httpx.Client(timeout=settings.request_timeout, headers=HEADERS)
-    
-    def close(self):
-        self.client.close()
+        pass
     
     def fetch_number_pages_for_provider(self, provider: str) -> int:
         """Fetch the number of pages for a provider's discussions."""
         url = f"https://www.examtopics.com/discussions/{provider}/"
         try:
-            response = self.client.get(url)
+            response = requests.get(url, headers=HEADERS, timeout=settings.request_timeout)
             if response.status_code == 404:
                 logger.error(f"Provider {provider} not found")
                 raise Exception(f"Provider '{provider}' not found")
@@ -50,7 +47,7 @@ class ExamScraper:
             if element:
                 return int(element.text) + 1
             return 1
-        except httpx.HTTPError as e:
+        except requests.RequestException as e:
             logger.error(f"Failed to fetch page count: {e}")
             raise
     
@@ -63,7 +60,7 @@ class ExamScraper:
         
         while attempts < settings.retry_attempts:
             try:
-                response = self.client.get(url)
+                response = requests.get(url, headers=HEADERS, timeout=settings.request_timeout)
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.text, 'html.parser')
                     links = soup.select('div div div div div div div div h2 a')
@@ -91,7 +88,7 @@ class ExamScraper:
                     
                     logger.info(f'Page {page_number} Done for {provider}')
                     return rows
-            except httpx.HTTPError:
+            except requests.RequestException:
                 pass
             attempts += 1
             sleep(5)
@@ -145,7 +142,7 @@ class ExamScraper:
         """Fetch all certification providers from examtopics.com."""
         url = "https://www.examtopics.com/exams/"
         try:
-            response = self.client.get(url)
+            response = requests.get(url, headers=HEADERS, timeout=settings.request_timeout)
             if response.status_code != 200:
                 logger.error(f"Failed to fetch providers: {response.status_code}")
                 return []
@@ -174,7 +171,7 @@ class ExamScraper:
             
             logger.info(f"Found {len(providers)} providers")
             return providers
-        except httpx.HTTPError as e:
+        except requests.RequestException as e:
             logger.error(f"Failed to fetch providers: {e}")
             return []
 
@@ -182,7 +179,7 @@ class ExamScraper:
         """Fetch all exams for a specific provider."""
         url = f"https://www.examtopics.com/exams/{provider}/"
         try:
-            response = self.client.get(url)
+            response = requests.get(url, headers=HEADERS, timeout=settings.request_timeout)
             if response.status_code != 200:
                 logger.error(f"Failed to fetch exams for {provider}: {response.status_code}")
                 return []
@@ -210,6 +207,6 @@ class ExamScraper:
             
             logger.info(f"Found {len(exams)} exams for {provider}")
             return exams
-        except httpx.HTTPError as e:
+        except requests.RequestException as e:
             logger.error(f"Failed to fetch exams for {provider}: {e}")
             return []

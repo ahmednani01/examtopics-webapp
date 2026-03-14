@@ -31,6 +31,13 @@ async function fetchExams() {
         const data = await response.json();
         
         document.getElementById('providerTitle').textContent = data.provider_display_name || currentProvider;
+        
+        if (data.scraping && data.job_id) {
+            showScrapeStatus();
+            pollJobStatus(data.job_id);
+            return;
+        }
+        
         document.getElementById('providerSubtitle').textContent = `${data.exams.length} exams`;
         allExams = data.exams || [];
         renderExams(allExams);
@@ -89,7 +96,7 @@ function renderExams(exams) {
         const card = document.createElement('div');
         card.className = 'exam-card';
         card.innerHTML = `
-            <h3>${exam.display_name}</h3>
+            <h3>${exam.display_name?.toUpperCase()}</h3>
             <span class="exam-count">${exam.description}</span>
         `;
         card.addEventListener('click', () => {
