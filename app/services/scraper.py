@@ -132,8 +132,8 @@ class ExamScraper:
         
         sorted_rows = sorted(filtered_rows, key=lambda x: (x['title'], int(x['number'])))
         
-        for i, row in enumerate(sorted_rows, 1):
-            row['id'] = i
+        for row in sorted_rows:
+            row['id'] = row['number']
         
         logger.info(f"Found {len(sorted_rows)} questions for {provider}/{exam_code}")
         return sorted_rows

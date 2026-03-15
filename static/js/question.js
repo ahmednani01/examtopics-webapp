@@ -3,6 +3,7 @@ const API_BASE = '/api';
 let currentProvider = '';
 let currentExam = '';
 let currentQuestionId = 1;
+let currentTopic = 1;
 let totalQuestions = 0;
 
 function getParamsFromUrl() {
@@ -41,6 +42,10 @@ async function init() {
         const data = await response.json();
         totalQuestions = data.total_questions;
         
+        if (data.questions && data.questions.length > 0) {
+            currentTopic = data.questions[0].topic || 1;
+        }
+        
         await loadQuestion(currentQuestionId);
     } catch (error) {
         console.error('Error fetching questions:', error);
@@ -66,7 +71,7 @@ async function loadQuestion(questionId) {
     document.getElementById('qExplanation').classList.add('hidden');
 
     try {
-        const response = await fetch(`${API_BASE}/questions/${questionId}?provider=${currentProvider}&exam=${currentExam}`);
+        const response = await fetch(`${API_BASE}/questions/${questionId}?provider=${currentProvider}&exam=${currentExam}&topic=${currentTopic}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const data = await response.json();
@@ -128,7 +133,7 @@ function renderDiscussions(discussions) {
                 <strong>${d.user}</strong>
                 <span class="discussion-meta">${d.timestamp} • ${d.votes} votes</span>
             </div>
-            <div class="discussion-answer">Answer: ${d.selected_answer}</div>
+            ${d.selected_answer ? `<div class="discussion-answer">Answer: ${d.selected_answer}</div>` : ''}
             <div class="discussion-comment">${d.comment}</div>
         `;
         container.appendChild(div);

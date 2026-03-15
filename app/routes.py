@@ -184,27 +184,27 @@ async def get_exam_questions(
     )
 
 
-@router.get("/questions/{question_id}")
+@router.get("/questions/{question_number}")
 async def get_question_detail(
-    question_id: int,
+    question_number: int,
     provider: str = Query(..., description="Provider name"),
-    exam: str = Query(..., description="Exam code")
+    exam: str = Query(..., description="Exam code"),
+    topic: int = Query(1, description="Topic number")
 ):
     """Get detailed question content using Playwright."""
-    exam_id = f"{provider}-{exam}"
-    
-    question = await cache.get_question_by_exam_and_id(exam, question_id)
+    question = await cache.get_question_by_exam_topic_number(exam, topic, question_number)
     
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     
-    link = question['link']
+    internal_id = question['link'].split('/view/')[1].split('-exam-')[0]
+    link = f"https://www.examtopics.com/discussions/{provider}/view/{internal_id}-exam-{exam}-topic-{topic}-question-{question_number}-discussion/"
     
     if question.get('content'):
         content_data = json.loads(question['content'])
         if content_data:
             return QuestionDetail(
-                id=question_id,
+                id=question_number,
                 link=link,
                 content=QuestionContent(**content_data)
             )
@@ -218,14 +218,14 @@ async def get_question_detail(
         await cache.update_question_content(link, content_data)
         
         return QuestionDetail(
-            id=question_id,
+            id=question_number,
             link=link,
             content=QuestionContent(**content_data)
         )
     except Exception as e:
         logger.error(f"Failed to fetch question content: {e}")
         return QuestionDetail(
-            id=question_id,
+            id=question_number,
             link=link,
             content=QuestionContent(
                 question="Failed to load question content. Please try again.",

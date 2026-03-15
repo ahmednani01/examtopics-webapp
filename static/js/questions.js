@@ -75,7 +75,7 @@ function renderQuestions(questions) {
             </div>
         `;
         card.addEventListener('click', () => {
-            window.location.href = `/question.html?provider=${currentProvider}&exam=${currentExam}&id=${q.id}`;
+            window.location.href = `/question.html?provider=${currentProvider}&exam=${currentExam}&id=${q.number}`;
         });
         container.appendChild(card);
     });

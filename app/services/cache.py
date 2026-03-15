@@ -105,11 +105,24 @@ class CacheManager:
                     return dict(row)
         return None
     
+    async def get_question_by_exam_topic_number(self, exam: str, topic: int, number: int) -> Optional[Dict]:
+        """Get a question by exam code, topic, and number."""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM questions WHERE exam_code = ? AND topic = ? AND number = ?", 
+                (exam, topic, number)
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    return dict(row)
+        return None
+    
     async def get_questions_by_exam(self, exam: str) -> List[Dict]:
         """Get all questions for an exam."""
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM questions WHERE exam = ? ORDER BY title, number", (exam,)) as cursor:
+            async with db.execute("SELECT * FROM questions WHERE exam = ? ORDER BY topic, number", (exam,)) as cursor:
                 rows = await cursor.fetchall()
                 return [dict(row) for row in rows]
         return []
