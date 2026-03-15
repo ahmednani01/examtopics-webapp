@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     max_workers: int = 15
     request_timeout: int = 30
     retry_attempts: int = 4
-    cache_db: str = "cache.db"
+    cache_db: str = "cache/cache.db"
     
     class Config:
         env_file = ".env"
