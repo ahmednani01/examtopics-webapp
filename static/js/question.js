@@ -86,12 +86,21 @@ async function loadQuestion(questionId) {
         
         if (content.correct_answer) {
             document.getElementById('correctAnswer').textContent = content.correct_answer;
+            document.getElementById('answerContent').classList.add('hidden');
+            document.getElementById('toggleAnswer').textContent = 'Show Answer';
             document.getElementById('qAnswer').classList.remove('hidden');
         }
         
         if (content.explanation) {
             document.getElementById('explanationText').textContent = content.explanation;
             document.getElementById('qExplanation').classList.remove('hidden');
+        }
+        
+        if (content.discussions && content.discussions.length > 0) {
+            renderDiscussions(content.discussions);
+            document.getElementById('discussionsContent').classList.add('hidden');
+            document.getElementById('toggleDiscussions').textContent = `Show Discussions (${content.discussions.length})`;
+            document.getElementById('qDiscussions').classList.remove('hidden');
         }
         
         updateNavButtons();
@@ -105,6 +114,25 @@ async function loadQuestion(questionId) {
 function updateNavButtons() {
     document.getElementById('prevBtn').disabled = currentQuestionId <= 1;
     document.getElementById('nextBtn').disabled = currentQuestionId >= totalQuestions;
+}
+
+function renderDiscussions(discussions) {
+    const container = document.getElementById('discussionsContent');
+    container.innerHTML = '';
+    
+    discussions.forEach(d => {
+        const div = document.createElement('div');
+        div.className = 'discussion-item';
+        div.innerHTML = `
+            <div class="discussion-header">
+                <strong>${d.user}</strong>
+                <span class="discussion-meta">${d.timestamp} • ${d.votes} votes</span>
+            </div>
+            <div class="discussion-answer">Answer: ${d.selected_answer}</div>
+            <div class="discussion-comment">${d.comment}</div>
+        `;
+        container.appendChild(div);
+    });
 }
 
 function showLoading() {
@@ -123,6 +151,11 @@ function showError(message) {
     errorEl.classList.remove('hidden');
 }
 
+function hideError() {
+    const errorEl = document.getElementById('error');
+    errorEl.classList.add('hidden');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     init();
 
@@ -132,5 +165,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('nextBtn').addEventListener('click', () => {
         loadQuestion(currentQuestionId + 1);
+    });
+
+    document.getElementById('toggleAnswer').addEventListener('click', () => {
+        const answerContent = document.getElementById('answerContent');
+        const btn = document.getElementById('toggleAnswer');
+        if (answerContent.classList.contains('hidden')) {
+            answerContent.classList.remove('hidden');
+            btn.textContent = 'Hide Answer';
+        } else {
+            answerContent.classList.add('hidden');
+            btn.textContent = 'Show Answer';
+        }
+    });
+
+    document.getElementById('toggleDiscussions').addEventListener('click', () => {
+        const discussionsContent = document.getElementById('discussionsContent');
+        const btn = document.getElementById('toggleDiscussions');
+        if (discussionsContent.classList.contains('hidden')) {
+            discussionsContent.classList.remove('hidden');
+            btn.textContent = 'Hide Discussions';
+        } else {
+            discussionsContent.classList.add('hidden');
+            const count = document.querySelectorAll('.discussion-item').length;
+            btn.textContent = `Show Discussions (${count})`;
+        }
     });
 });

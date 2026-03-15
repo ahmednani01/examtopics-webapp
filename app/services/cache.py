@@ -93,11 +93,13 @@ class CacheManager:
         return None
     
     async def get_question_by_exam_and_id(self, exam: str, question_id: int) -> Optional[Dict]:
-        """Get a question by exam and numeric ID."""
-        composite_id = f"{exam}-{question_id}"
+        """Get a question by exam code and numeric ID."""
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM questions WHERE id = ?", (composite_id,)) as cursor:
+            async with db.execute(
+                "SELECT * FROM questions WHERE exam_code = ? AND number = ?", 
+                (exam, question_id)
+            ) as cursor:
                 row = await cursor.fetchone()
                 if row:
                     return dict(row)

@@ -253,6 +253,11 @@ header p {
     cursor: not-allowed;
 }
 
+.btn-small {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
 .modal {
     position: fixed;
     top: 0;
@@ -381,4 +386,37 @@ header p {
 .question-nav .btn {
     flex: 1;
     max-width: 200px;
+}
+
+.discussions {
+    margin-top: 24px;
+}
+
+.discussion-item {
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.discussion-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.discussion-meta {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.discussion-answer {
+    font-weight: bold;
+    color: #1a73e8;
+    margin-bottom: 8px;
+}
+
+.discussion-comment {
+    color: #333;
+    line-height: 1.5;
 }

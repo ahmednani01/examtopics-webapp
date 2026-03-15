@@ -4,7 +4,6 @@ services:
     ports:
       - "8001:8000"
     environment:
-      - PINCHTAB_URL=http://pinchtab:9867
       - DOWNLOAD_DIR=/app/downloads
       - MAX_WORKERS=15
       - REQUEST_TIMEOUT=30
@@ -13,21 +12,9 @@ services:
     volumes:
       - ./downloads:/app/downloads
       - ./cache:/app/cache       # <-- map the folder, not the file
-    depends_on:
-      - pinchtab
     restart: unless-stopped
     container_name: examtopics-app
-
-  pinchtab:
-    image: pinchtab/pinchtab
-    ports:
-      - "9867:9867"
-    environment:
-      - PORT=9867
-      - HEADLESS=true
-    restart: unless-stopped
     shm_size: 2gb
-    container_name: examtopics-pinchtab
 
 networks:
   default:

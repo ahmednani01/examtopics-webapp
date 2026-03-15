@@ -3,7 +3,6 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    pinchtab_url: str = "http://localhost:9867"
     download_dir: str = "downloads"
     max_workers: int = 15
     request_timeout: int = 30

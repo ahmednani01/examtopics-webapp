@@ -15,7 +15,7 @@ from app.models import (
     Provider, ProviderList, Exam, ExamListResponse, PaginatedQuestions
 )
 from app.services.scraper import ExamScraper
-from app.services.pinchtab import PinchtabClient
+from app.services.playwright import PlaywrightClient
 from app.services.parser import ContentParser
 from app.services.cache import CacheManager
 from app.config import get_settings
@@ -190,10 +190,10 @@ async def get_question_detail(
     provider: str = Query(..., description="Provider name"),
     exam: str = Query(..., description="Exam code")
 ):
-    """Get detailed question content using Pinchtab."""
+    """Get detailed question content using Playwright."""
     exam_id = f"{provider}-{exam}"
     
-    question = await cache.get_question_by_exam_and_id(exam_id, question_id)
+    question = await cache.get_question_by_exam_and_id(exam, question_id)
     
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
@@ -209,9 +209,9 @@ async def get_question_detail(
                 content=QuestionContent(**content_data)
             )
     
-    pinchtab = PinchtabClient()
+    playwright = PlaywrightClient()
     try:
-        text = await pinchtab.get_page_content(link)
+        text = await playwright.get_page_content(link)
         
         content_data = parser.parse_question_page(text)
         
@@ -236,7 +236,7 @@ async def get_question_detail(
             )
         )
     finally:
-        await pinchtab.close()
+        await playwright.close()
 
 
 @router.post("/exams/{provider}/scrape")

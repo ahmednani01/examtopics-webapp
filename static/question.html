@@ -33,12 +33,20 @@
                 <div id="qOptions" class="options-list"></div>
                 
                 <div id="qAnswer" class="answer-section hidden">
-                    <h3>Correct Answer: <span id="correctAnswer"></span></h3>
+                    <button id="toggleAnswer" class="btn btn-small">Show Answer</button>
+                    <div id="answerContent" class="hidden">
+                        <h3>Correct Answer: <span id="correctAnswer"></span></h3>
+                    </div>
                 </div>
                 
                 <div id="qExplanation" class="explanation hidden">
                     <h3>Explanation</h3>
                     <p id="explanationText"></p>
+                </div>
+                
+                <div id="qDiscussions" class="discussions hidden">
+                    <button id="toggleDiscussions" class="btn">Show Discussions</button>
+                    <div id="discussionsContent" class="hidden"></div>
                 </div>
             </div>
 
